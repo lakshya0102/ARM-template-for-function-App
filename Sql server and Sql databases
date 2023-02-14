@@ -1,0 +1,71 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+
+
+        "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "sqlServerName": {
+      "type": "string",
+      "defaultValue": "mysqlserver",
+      "metadata": {
+        "description": "Name of the SQL Server."
+      }
+    },
+    "sqlServerAdminLogin": {
+      "type": "string",
+      "defaultValue": "sqladmin",
+      "metadata": {
+        "description": "SQL Server admin username."
+      }
+    },
+    "sqlServerAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "password",
+      "metadata": {
+        "description": "SQL Server admin password."
+      }
+    },
+    "databaseName": {
+      "type": "string",
+      "defaultValue": "mydatabase",
+      "metadata": {
+        "description": "Name of the database."
+      }
+    },
+    "sqledition": {
+        "type": "string",
+        "defaultValue":"basic"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2022-02-01-preview",
+      "name": "[parameters('sqlServerName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+      "administratorLogin": "[parameters('sqlServerAdminLogin')]",
+      "administratorLoginPassword": "[parameters('sqlServerAdminPassword')]"
+
+      },
+      "resources":[
+      {
+      "type": "databases",
+      "apiVersion":"2022-02-01-preview",
+      "name": "[parameters('databaseName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+      "edition":"[parameters('sqledition')]"
+         },
+        "dependsOn": [
+        "[concat('Microsoft.Sql/servers/', parameters('sqlServerName'))]"
+        ]
+      }
+      ]
+    }
+  ]
+}
