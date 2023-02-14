@@ -1,0 +1,117 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "functionAppName": {
+        "type": "string",
+        "defaultValue": "myfunctionapp"
+      },
+      "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+      },
+      
+      "storageAccountName": {
+        "type": "string",
+        "defaultValue": "mystorageaccount"
+      },
+      "runtime": {
+      "type": "string",
+      "defaultValue": "node",
+      "allowedValues": [
+        "node",
+        "dotnet",
+        "java",
+        "python"
+      ]
+    },
+    "appInsightsName": {
+      "type": "string"
+    }
+
+  },
+    "resources": [
+      {
+        "type": "Microsoft.Storage/storageAccounts",
+        "name": "[parameters('storageAccountName')]",
+        "apiVersion": "2022-05-01",
+        "location": "[parameters('location')]",
+        "sku": {
+          "name": "Standard_LRS"
+        },
+        "kind": "StorageV2",
+        "properties": {}
+      },
+      
+      {
+        "type": "Microsoft.Web/serverfarms",
+        "name": "[parameters('functionAppName')]",
+        "apiVersion": "2022-03-01",
+        "location": "[parameters('location')]",
+        "sku": {
+          "name": "Y1",
+          "tier": "Dynamic",
+          "size": "Y1",
+          "family": "Y",
+          "capacity": 0
+        },
+        "properties": {}
+      },
+
+      {
+        "type": "Microsoft.Web/sites",
+        "name": "[parameters('functionAppName')]",
+        "apiVersion": "2022-03-01",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+          "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+          "[concat('Microsoft.Insights/components/', concat(parameters('appInsightsName'), '-appinsights'))]"
+      ],
+        "kind": "functionapp",
+        "properties": {
+          "enabled": true,
+          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppName'))]",
+          "siteConfig": {
+            "appSettings": [
+            
+                {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('functionAppName')), '2020-02-02').InstrumentationKey]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', parameters('storageAccountName'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-09-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[parameters('functionAppName')]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "[parameters('runtime')]"
+            },
+            {
+            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+            "value": "[reference(concat('Microsoft.Insights/components/', concat(parameters('functionAppName'), '-appinsights'))).InstrumentationKey]"
+          }
+            ],
+            "ftpsState": "FtpsOnly",
+          "minTlsVersion": "1.2"
+        },
+        "httpsOnly": true
+        }
+
+      }
+    
+      
+    ]
+} 
